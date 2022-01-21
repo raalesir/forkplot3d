@@ -6,9 +6,14 @@ import  os
 
 import  matplotlib.pyplot as plt
 
-from system import  System
+try:
+    from system import  System
+    from parameters import *
 
-from parameters import *
+except ModuleNotFoundError:
+    from .system import System
+    from .parameters import *
+
 
 class Simulation:
     """
@@ -46,7 +51,7 @@ class Simulation:
 
             e = 0
             for label, func in self.system.interactions.items():
-                e += func.energy(c=c, array=self.system.array )
+                e += func.energy(c=c, array=self.system.array, l_0=l_0 )
 
             energies.append(e)
 

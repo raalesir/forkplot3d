@@ -7,9 +7,13 @@ from scipy.io import loadmat
 import  pandas as pd
 import  sys
 import  numpy as np
+try:
+    from node import Node #https://stackoverflow.com/questions/21236824/unresolved-reference-issue-in-pycharm
+    from parameters import *
+except ModuleNotFoundError:
+    from .node import Node
+    from .parameters import *
 
-from node import Node #https://stackoverflow.com/questions/21236824/unresolved-reference-issue-in-pycharm
-from parameters import *
 
 class System:
     """

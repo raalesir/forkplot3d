@@ -1,8 +1,12 @@
 """
 module for  keeping implementation of the  interactions for the system
 """
+
 import numpy as np
-from  parameters import *
+try:
+    from  parameters import *
+except ModuleNotFoundError:
+    from .parameters import * ### needed for pytest.... :((((((
 
 class FullIntersizeEnergy:
     """
@@ -39,7 +43,7 @@ class FullStretchEnergy:
     def energy(*args, **kwargs):
 
         c = kwargs['c']
-        # l_0 = kwargs['l_0']
+        l_0 =  kwargs['l_0']
 
         tmp = np.diff(np.hstack((c, c[:, :1, :])), n=1, axis=1)
 
