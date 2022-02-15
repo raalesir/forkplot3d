@@ -1,9 +1,22 @@
 class Node:
     """
-    class representing  a distribution
+    class representing  a distribution, given by `vals` as values and `bins` as bins for the values.
+    Each instance has a position: `i` is the  index of fork plot, and `j` is the index of size bin.
     """
 
     def __init__(self, vals, bins, i, j, *args, **kwargs):
+        """
+
+        :param vals: values for the fork plot
+        :type vals: numpy array
+        :param bins: bins for the fork plot
+        :type bins:  numpy array
+        :param i: index for the fork plot
+        :type i:int
+        :param j: index for the size bin
+        :type j: int
+
+        """
         self.vals = vals
         self.bins = bins
         self.i = i
