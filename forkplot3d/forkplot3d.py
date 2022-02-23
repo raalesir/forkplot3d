@@ -98,8 +98,9 @@ if __name__ == "__main__":
 
     system.prepare_system(datafiles_location=prefix, fnames_=fnames)
 
-
     logging.info("systems' coordinates shape is: %s"%(str(system.coords.shape )))
+
+    logging.info("the distribution shape for the first array element: %i " %(system.array[0,0].get_vals().shape[0], ))
 
     simulation = Simulation(system)
 
