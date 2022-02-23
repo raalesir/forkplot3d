@@ -55,8 +55,7 @@ class System:
 
         for energy in energies_:
             if eval('e.' + energy).USE:
-
-             d[eval('e.' + energy).label] = eval('e.' + energy)
+                d[eval('e.' + energy).label] = eval('e.' + energy)
 
         return d
 
@@ -143,6 +142,7 @@ class System:
         logging.debug(self.array)
 
         return array
+
 
     def _get_init_coords(self):
         """
