@@ -9,10 +9,13 @@ import  matplotlib.pyplot as plt
 try:
     from system import  System
     from parameters import *
+    from energies import  *
 
 except ModuleNotFoundError:
     from .system import System
     from .parameters import *
+    from .energies import *
+
 
 
 class Simulation:
@@ -27,11 +30,134 @@ class Simulation:
         self.system = system_
 
 
-    def run(self):
+    def run(self, n_steps=10000):
+        size_to_monitor = 3
+
         logging.info("running simulation")
 
+        # e1 = kappa*get_stretch_energy(x)
+        # e2 = hist_energy(x, histograms)
+        # energy = e1 + e2
+        # print(e1, e2, energy)
 
-        return
+        c = self.system._get_init_coords()
+        # c = init_coords(array=array, l_0=l_0)
+        x0 = 4
+
+        kappa = .2
+        epsilon = 0.1
+        alpha = 0.02
+        e1 = FullHistogramEnergy.energy(c=c, array=self.system.array) #full_histogram_energy(c, array)
+        e2 = kappa * FullStretchEnergy.energy(c=c, l_0=l_0) #full_stretch_energy(c, l_0=l_0)
+        e3 = epsilon * FullIntersizeEnergy.energy(c=c) #intersize_energy(c)
+        e4 = alpha * FullPoleAttractionEnergy.energy(c=c, array=self.system.array, x0=x0) #pole_attraction_energy(c, array, x0)
+        energy = e1 + e2 + e3 + e4
+        logging.info('initial energy: %2.3f, %2.3f,%2.3f,%2.3f,total: %2.3f '%(e1, e2, e3, e4, energy))
+
+        e = [energy]
+        bond_length = []
+        beta = 10
+        take_bonds = 0
+        collect_coords = []
+        logging.info('running %i cycles' %n_steps)
+
+        for i in range(n_steps):
+            fork = np.random.choice(self.system.array.shape[0])
+            layer = np.random.choice(self.system.array.shape[1])
+            #     layer= 2
+            bead = self.system.array[fork, layer]
+            #     new_index = np.random.choice(n_bins)
+            #                 c[0, fork, layer] = bin_
+
+
+
+            c_new = c.copy()
+            cur_index = np.where(bead.get_bins() == c_new[0, fork, layer])[0][0]
+            new_index = np.random.choice([cur_index - 1, cur_index + 1])
+
+            if new_index >= len(bead.get_bins()) - 1:
+                new_index -= 2
+            elif new_index <= 0:
+                new_index += 2
+
+            c_new[0, fork, layer] = bead.get_bins()[new_index]
+            c_new[1, fork, layer] += np.random.uniform(-l_0 / 5, l_0 / 5)
+            c_new[2, fork, layer] += np.random.uniform(-l_0 / 5, l_0 / 5)
+
+            if (c_new[1:3, fork, layer] > 1.0).any() | (c_new[1:3, fork, layer] < -1.0).any():
+                new_energy = 10000
+            else:
+
+                e1_new = FullHistogramEnergy.energy(c=c_new, array=self.system.array)# full_histogram_energy(c_new, array)
+                e2_new = kappa * FullStretchEnergy.energy(c=c_new, l_0=l_0) #full_stretch_energy(c_new, l_0=l_0)
+                e3_new = epsilon * FullIntersizeEnergy.energy(c=c_new)# intersize_energy(c_new)
+                e4_new = alpha * FullPoleAttractionEnergy.energy(c=c_new, array=self.system.array, x0=x0)  #pole_attraction_energy(c_new, array, x0)
+                #     energy = e1+e2+e3
+                #     i_h = np.random.choice(len(histograms))
+
+
+                #     h = histograms[i_h]
+                #     ind = np.random.choice(n_bins)
+
+                #     x_new = x.copy()
+
+                #     x_new[0,i_h] = h[1][ind]
+                #     x_new[1,i_h] = x_new[1,i_h] + np.random.uniform(-l_0/5, l_0/5)
+                #     x_new[2,i_h] = x_new[2,i_h] + np.random.uniform(-l_0/5, l_0/5)
+
+
+                #     e1 = kappa*get_stretch_energy(x_new, histograms)
+                #     e2 = hist_energy(x_new, histograms)
+
+                #     i_h_neigbours = get_neighbours(i_h, len(histograms)) #np.arange(len(histograms))
+
+                #     d_e2 = diff_hist_energy(x_new, histograms, i_h_neigbours) - diff_hist_energy(x, histograms, i_h_neigbours)
+                #     e2_new = e2 + d_e2
+
+                #     d_e1 = diff_stretch_energy(x_new, i_h_neigbours) - diff_stretch_energy(x, i_h_neigbours)
+                #     e1_new = e1 + kappa*d_e1
+
+
+                new_energy = e1_new + e2_new + e3_new + e4_new
+
+            if np.random.random() < np.exp(-beta * (new_energy - energy)):
+                e2 = e2_new
+                e1 = e1_new
+                e3 = e3_new
+                e4 = e4_new
+                energy = new_energy
+
+                c = c_new.copy()
+                #         x = x_new.copy()
+                #         print(sum(energy), sum(e_new), np.exp(-50*(sum(e_new) - sum(energy))))
+                e.append(energy)
+
+                x_d = np.diff(c[:, :, size_to_monitor], axis=1)
+                bonds = [np.sqrt(np.dot(el, el)) for el in x_d.T]
+                bonds = sum(bonds) / len(bonds)
+                bond_length.append(bonds)
+
+                if np.random.random() < .05:
+                    print(e1, e2, e3, e4)
+
+                    # scatter.x = c[0, :, size_to_monitor]
+                    # scatter.y = c[1, :, size_to_monitor]
+                    # scatter.z = c[2, :, size_to_monitor]
+                    # lines.x = np.append(c[0, :, size_to_monitor], c[0, :1, size_to_monitor])
+                    # lines.y = np.append(c[1, :, size_to_monitor], c[1, :1, size_to_monitor])
+                    # lines.z = np.append(c[2, :, size_to_monitor], c[2, :1, size_to_monitor])
+                    #
+                    # scatter1.x = c[0, 2:3, size_to_monitor]
+                    # scatter1.y = c[1, 2:3, size_to_monitor]
+                    # scatter1.z = c[2, 2:3, size_to_monitor]
+                if (i > n_steps // 3) and (np.random.random() < 0.1):
+                    collect_coords.append(c)
+
+        # lines.x = x[0]
+        #         lines.y = x[1]
+        #         lines.z = x[2]
+        #         sleep(.01)
+        return np.array(collect_coords)
 
 
     def plot_forkplot(self, fnames):
@@ -140,7 +266,9 @@ if __name__ == "__main__":
     # logging.info("the plot is saved to  %s" %(os.path.join(PLOT_ROOT,'random.png')))
     # simulation.sample_random_configurations('random.png')
 
-    simulation.plot_forkplot(fnames)
+    # simulation.plot_forkplot(fnames)
 
-    # simulation.run()
+    collected_coords = simulation.run()
+    logging.info('collected coords shape is: %s'%str(collected_coords.shape))
+
 
