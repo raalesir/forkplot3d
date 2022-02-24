@@ -124,6 +124,9 @@ class System:
 
                 fork_data['areas_binned'] = pd.cut(fork_data['areas'], bins=self.number_of_size_bins, )
                 fork_data['bin_number'] = pd.cut(fork_data['areas'], bins=self.number_of_size_bins, labels=False)
+                fork_data['longs'] = fork_data['longs'] * fork_data['lengths']
+
+
             except  KeyError:
                 logging.error("open the %i and check the column names!" %file)
                 sys.exit("open the %i and check the column names!" %file)
@@ -133,6 +136,9 @@ class System:
                 logging.info("creating histogram for bin %i" %bin_)
 
                 tmp = fork_data[fork_data['bin_number'] == bin_]['longs'].dropna()
+                logging.debug("data shape is: %s"%tmp.shape)
+                logging.debug(tmp.describe())
+
                 vals, bins = np.histogram(tmp, bins=self.number_of_histogram_bins, density=True)
                 logging.info("done")
                 distributions.append(Node(vals, bins, i, bin_))

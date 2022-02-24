@@ -34,7 +34,38 @@ class Simulation:
         return
 
 
-    def sample_random_configurations(self):
+    def plot_forkplot(self, fnames):
+        """
+        plotting fork-plots for all sizes
+        and saves the result to the `plots` folder
+        """
+
+
+        for s in range(self.system.array.shape[1]):
+            logging.info('producing fork plot for size %i out of %i'%(s, self.system.array.shape[1]))
+            plt.figure(figsize=(18, 12))
+            COLOR = 'black'
+            plt.rcParams['text.color'] = COLOR
+            plt.rcParams['axes.labelcolor'] = COLOR
+            plt.rcParams['xtick.color'] = COLOR
+            plt.rcParams['ytick.color'] = COLOR
+            plt.suptitle("Fork-plots for size bin %i out of %i" % (s + 1, self.system.array.shape[1]), y=0.94, fontsize=25)
+            for i in range(self.system.array.shape[0]):
+                plt.subplot(self.system.array.shape[0] // 2, 2, i + 1)
+                v = self.system.array[i, s]
+                plt.bar(v.get_bins()[:-1], v.get_vals(), width=0.1,
+                        label='fork=%i, file=%s' % (i + 1, fnames[i]))
+                plt.xlim(0, 4)
+                plt.xticks(fontsize=20)
+                plt.xlabel("position, long axis, $\mu m$", fontsize=20)
+                plt.legend(fontsize=16, framealpha=0.1)
+
+            path = os.path.join(PLOT_ROOT, 'forkplot_size_%i.png' % s)
+            plt.savefig(path, transparent=True, bbox_inches='tight')
+
+
+
+    def sample_random_configurations(self, fname):
         """
         generate random comformation, calculate the energy, accumulate it and
         plot energy distribution.
@@ -51,7 +82,7 @@ class Simulation:
 
             e = 0
             for label, func in self.system.interactions.items():
-                e += func.energy(c=c, array=self.system.array, l_0=l_0 )
+                e += func.energy(c=c, array=self.system.array, l_0=l_0, x0=0 )
 
             energies.append(e)
 
@@ -61,7 +92,7 @@ class Simulation:
         plt.hist(energies, edgecolor='black')
 
         Path(PLOT_ROOT).mkdir(parents=True, exist_ok=True)
-        path = os.path.join(PLOT_ROOT, 'random.png')
+        path = os.path.join(PLOT_ROOT, fname)
         plt.savefig(path)
 
 
@@ -105,6 +136,11 @@ if __name__ == "__main__":
     simulation = Simulation(system)
 
 
-    simulation.sample_random_configurations()
+    # logging.info("sampling  some random conformations and plotting full energy distributions...")
+    # logging.info("the plot is saved to  %s" %(os.path.join(PLOT_ROOT,'random.png')))
+    # simulation.sample_random_configurations('random.png')
+
+    simulation.plot_forkplot(fnames)
+
     # simulation.run()
 
