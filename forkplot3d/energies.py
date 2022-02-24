@@ -83,3 +83,33 @@ class FullHistogramEnergy:
                 e += vals[ind]
 
         return -e
+
+
+
+class FullPoleAttractionEnergy:
+    USE= True
+    label = 'full_pole_energy'
+
+    @staticmethod
+    def energy(*args, **kwargs):
+        """
+        returns pole attraction energy
+
+        """
+        c = kwargs['c']
+        array = kwargs['array']
+        x0 = kwargs.pop('x0')
+
+
+        e = 0
+        n_forks = c.shape[1]
+        n_size_bins = c.shape[2]
+        for j in range(n_forks):
+            for k in range(n_size_bins):
+                vals, bins = array[j, k].get_vals(), array[j, k].get_bins()
+                ind = np.argwhere(bins >= c[0, j, k])
+                if ind.size > 0:  # checking for empty array
+                    ind = ind[0][0]
+                    #                 print(ind, bins[ind])
+                    e += (bins[ind] - x0) ** 2
+        return e
