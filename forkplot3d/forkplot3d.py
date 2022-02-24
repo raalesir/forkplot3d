@@ -30,7 +30,7 @@ class Simulation:
         self.system = system_
 
 
-    def run(self, n_steps=10000):
+    def run(self, n_steps=10000, x0=0):
         size_to_monitor = 3
 
         logging.info("running simulation")
@@ -42,7 +42,7 @@ class Simulation:
 
         c = self.system._get_init_coords()
         # c = init_coords(array=array, l_0=l_0)
-        x0 = 4
+        e1_new = e2_new = e3_new = e4_new = 0
 
         kappa = .2
         epsilon = 0.1
@@ -117,19 +117,12 @@ class Simulation:
                 #     d_e1 = diff_stretch_energy(x_new, i_h_neigbours) - diff_stretch_energy(x, i_h_neigbours)
                 #     e1_new = e1 + kappa*d_e1
 
-
                 new_energy = e1_new + e2_new + e3_new + e4_new
 
             if np.random.random() < np.exp(-beta * (new_energy - energy)):
-                e2 = e2_new
-                e1 = e1_new
-                e3 = e3_new
-                e4 = e4_new
-                energy = new_energy
 
+                energy = new_energy
                 c = c_new.copy()
-                #         x = x_new.copy()
-                #         print(sum(energy), sum(e_new), np.exp(-50*(sum(e_new) - sum(energy))))
                 e.append(energy)
 
                 x_d = np.diff(c[:, :, size_to_monitor], axis=1)
@@ -138,7 +131,7 @@ class Simulation:
                 bond_length.append(bonds)
 
                 if np.random.random() < .05:
-                    print(e1, e2, e3, e4)
+                    print(e1_new, e2_new, e3_new, e4_new)
 
                     # scatter.x = c[0, :, size_to_monitor]
                     # scatter.y = c[1, :, size_to_monitor]
@@ -222,6 +215,64 @@ class Simulation:
         plt.savefig(path)
 
 
+    def prepare_data_fork_plots(self, fork_plot, c1, c2):
+        """
+        """
+        vvals = []
+        for i in range(c1.shape[-1]):
+            vals1, _ = np.histogram(c1[:, 0, fork_plot, i], bins=self.system.number_of_histogram_bins, density=True)
+            vals2, _ = np.histogram(c2[:, 0, fork_plot, i], bins=self.system.number_of_histogram_bins, density=True)
+
+            vvals.append(vals1 + vals2)
+
+        vvals = np.array(vvals)
+
+        vvals_orig = []
+        for i in range(self.system.array.shape[1]):
+            vvals_orig.append(self.system.array[fork_plot, i].get_vals())
+
+        vvals_orig = np.array(vvals_orig)
+
+        return vvals, vvals_orig
+
+
+    def plot_forkplots_comparison(self, c1, c2):
+        """
+
+        :return:
+        :rtype:
+        """
+
+        for  fork in range(self.system.array.shape[0]):
+
+            vvals, vvals_orig = self.prepare_data_fork_plots(fork_plot=fork, c1=c1, c2=c2)
+
+            fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+
+            plt.suptitle("fork plots  for  %s" % (fnames[fork]), y=1.05, fontsize=20)
+
+            ax[0].matshow(vvals, aspect='auto')
+            ax[1].matshow(vvals_orig, aspect='auto')
+
+            ax[0].set_title('from  generated data')
+            ax[1].set_title('origin data')
+            ax[0].set_ylabel('size')
+            ax[1].set_ylabel('size')
+            ax[0].set_xlabel('long axis position, $\mu m$')
+            ax[1].set_xlabel('long axis position, $\mu m$')
+            ax[0].xaxis.set_ticks_position('bottom')
+            ax[1].xaxis.set_ticks_position('bottom')
+
+            lbls = np.linspace(0, 5, 30)[ax[0].get_xticks()[:-1].astype(int)]
+            lbls = ['%.1f' % el for el in lbls]
+
+            ax[0].set_xticklabels(lbls, rotation=45)
+            ax[1].set_xticklabels(lbls, rotation=45)
+
+            path = os.path.join(PLOT_ROOT, fnames[fork]+'.png')
+
+            plt.savefig(path, transparent=True)
+
 
 if __name__ == "__main__":
 
@@ -268,7 +319,15 @@ if __name__ == "__main__":
 
     # simulation.plot_forkplot(fnames)
 
-    collected_coords = simulation.run()
-    logging.info('collected coords shape is: %s'%str(collected_coords.shape))
+    collected_coords1 = simulation.run(x0=0)
+    logging.info('collected coords shape is: %s'%str(collected_coords1.shape))
+    collected_coords2 = simulation.run(x0=4)
+    logging.info('collected coords shape is: %s' % str(collected_coords2.shape))
+
+    logging.info("comparison of fork-plots for original and simulated data is being produced...")
+    simulation.plot_forkplots_comparison(collected_coords1, collected_coords2)
+    logging.info("done. The result is saved into '%s'"%PLOT_ROOT)
+
+
 
 
