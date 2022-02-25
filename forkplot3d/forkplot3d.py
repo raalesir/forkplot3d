@@ -44,9 +44,9 @@ class Simulation:
         # c = init_coords(array=array, l_0=l_0)
         e1_new = e2_new = e3_new = e4_new = 0
 
-        kappa = .2
-        epsilon = 0.1
-        alpha = 0.02
+        kappa = 0#.2
+        epsilon = 0#0.1
+        alpha = 0#0.02
         e1 = FullHistogramEnergy.energy(c=c, array=self.system.array) #full_histogram_energy(c, array)
         e2 = kappa * FullStretchEnergy.energy(c=c, l_0=l_0) #full_stretch_energy(c, l_0=l_0)
         e3 = epsilon * FullIntersizeEnergy.energy(c=c) #intersize_energy(c)
@@ -56,9 +56,10 @@ class Simulation:
 
         e = [energy]
         bond_length = []
-        beta = 10
+        beta = 5
         take_bonds = 0
         collect_coords = []
+        accepted  =  0
         logging.info('running %i cycles' %n_steps)
 
         for i in range(n_steps):
@@ -73,12 +74,16 @@ class Simulation:
 
             c_new = c.copy()
             cur_index = np.where(bead.get_bins() == c_new[0, fork, layer])[0][0]
-            new_index = np.random.choice([cur_index - 1, cur_index + 1])
+            new_index = np.random.choice(range(cur_index - 3, cur_index + 4))
 
-            if new_index >= len(bead.get_bins()) - 1:
-                new_index -= 2
-            elif new_index <= 0:
-                new_index += 2
+            new_index = new_index % (len(bead.get_bins())-1) # smart! :)
+
+            logging.debug("new_index=%i out of %i"%(new_index,len(bead.get_bins())-1))
+
+            # if new_index >= len(bead.get_bins()) - 4:
+            #     new_index -= 3
+            # elif new_index <= 0:
+            #     new_index += 2
 
             c_new[0, fork, layer] = bead.get_bins()[new_index]
             c_new[1, fork, layer] += np.random.uniform(-l_0 / 5, l_0 / 5)
@@ -120,7 +125,9 @@ class Simulation:
                 new_energy = e1_new + e2_new + e3_new + e4_new
 
             if np.random.random() < np.exp(-beta * (new_energy - energy)):
-
+                accepted +=1
+                if np.random.random() <.01:
+                    logging.info("acceptance rate is: %2.2f"%(accepted/i))
                 energy = new_energy
                 c = c_new.copy()
                 e.append(energy)
@@ -130,8 +137,8 @@ class Simulation:
                 bonds = sum(bonds) / len(bonds)
                 bond_length.append(bonds)
 
-                if np.random.random() < .05:
-                    print(e1_new, e2_new, e3_new, e4_new)
+                if np.random.random() < .01:
+                    logging.info("hist: %2.3f, stretch: %2.3f, intersize: %2.3f, pole attraction: %2.3f"%(e1_new, e2_new, e3_new, e4_new))
 
                     # scatter.x = c[0, :, size_to_monitor]
                     # scatter.y = c[1, :, size_to_monitor]
@@ -220,8 +227,8 @@ class Simulation:
         """
         vvals = []
         for i in range(c1.shape[-1]):
-            vals1, _ = np.histogram(c1[:, 0, fork_plot, i], bins=self.system.number_of_histogram_bins, density=True)
-            vals2, _ = np.histogram(c2[:, 0, fork_plot, i], bins=self.system.number_of_histogram_bins, density=True)
+            vals1, _ = np.histogram(c1[:, 0, fork_plot, i], bins=self.system.number_of_histogram_bins, density=False)
+            vals2, _ = np.histogram(c2[:, 0, fork_plot, i], bins=self.system.number_of_histogram_bins, density=False)
 
             vvals.append(vals1 + vals2)
 
@@ -246,6 +253,8 @@ class Simulation:
         for  fork in range(self.system.array.shape[0]):
 
             vvals, vvals_orig = self.prepare_data_fork_plots(fork_plot=fork, c1=c1, c2=c2)
+            logging.info("number of points in simulated data for fork_plot %i is : %s"%(fork, str(vvals.nonzero()[0].size)))
+            logging.info("number of points in original data for fork_plot %i is : %s"%(fork, str(vvals_orig.nonzero()[0].size)))
 
             fig, ax = plt.subplots(1, 2, figsize=(16, 6))
 
@@ -266,11 +275,10 @@ class Simulation:
             lbls = np.linspace(0, 5, 30)[ax[0].get_xticks()[:-1].astype(int)]
             lbls = ['%.1f' % el for el in lbls]
 
-            ax[0].set_xticklabels(lbls, rotation=45)
-            ax[1].set_xticklabels(lbls, rotation=45)
+            ax[0].set_xticklabels(lbls, )
+            ax[1].set_xticklabels(lbls,)
 
             path = os.path.join(PLOT_ROOT, fnames[fork]+'.png')
-
             plt.savefig(path, transparent=True)
 
 
@@ -319,9 +327,9 @@ if __name__ == "__main__":
 
     # simulation.plot_forkplot(fnames)
 
-    collected_coords1 = simulation.run(x0=0)
+    collected_coords1 = simulation.run(n_steps=50000, x0=0)
     logging.info('collected coords shape is: %s'%str(collected_coords1.shape))
-    collected_coords2 = simulation.run(x0=4)
+    collected_coords2 = simulation.run(n_steps=50000, x0=4)
     logging.info('collected coords shape is: %s' % str(collected_coords2.shape))
 
     logging.info("comparison of fork-plots for original and simulated data is being produced...")
